@@ -18,4 +18,5 @@ dependencies = [
     "scikit-learn>=1.8.0",
     "shapely>=2.1.2",
     "uvicorn>=0.41.0",
+    "cldfzenodo>=1.3.0",
 ]
