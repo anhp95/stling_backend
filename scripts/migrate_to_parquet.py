@@ -7,9 +7,11 @@ import pyarrow.parquet as pq
 from pathlib import Path
 
 # Configuration
-DATA_ROOT = Path("d:/project/lang/data")
-CSV_BACKUP_ROOT = DATA_ROOT / "csv"
-PARQUET_ROOT = DATA_ROOT / "parquet"
+_SCRIPTS_DIR = pathlib.Path(__file__).resolve().parent
+
+_DATA_ROOT = _SCRIPTS_DIR.parent / "data"
+CSV_BACKUP_ROOT = _DATA_ROOT / "csv"
+PARQUET_ROOT = _DATA_ROOT / "parquet"
 
 
 def migrate():

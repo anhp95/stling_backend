@@ -1,8 +1,10 @@
 import os
 import csv
+from pathlib import Path
 
-DATA_ROOT = "d:/project/lang/data"
-SPOKEN_LANG_DIR = os.path.join(DATA_ROOT, "spoken_language")
+_SCRIPT_DIR = Path(__file__).resolve().parent
+DATA_ROOT = str((_SCRIPT_DIR / "../data").resolve())
+SPOKEN_LANG_DIR = os.path.join(DATA_ROOT, "csv", "spoken_language")
 OUTPUT_CSV = os.path.join(DATA_ROOT, "concepticon_gloss_index.csv")
 DISTINCT_GLOSS_CSV = os.path.join(DATA_ROOT, "distinct_concepticon_glosses.csv")
 
