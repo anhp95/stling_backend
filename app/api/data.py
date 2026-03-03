@@ -202,7 +202,7 @@ async def get_glosses(datasets: Optional[List[str]] = Query(None)):
 
 @router.get("/schema")
 async def get_schema(data_type: str, dataset: str):
-    if dataset == COMBINED_DATASET_NAME:
+    if dataset.startswith(COMBINED_DATASET_NAME):
         # Use first available spoken dataset to get schema, and add dataset_name
         spoken_dir = os.path.join(DATA_ROOT, "parquet", "spoken_language")
         if os.path.exists(spoken_dir):
@@ -297,7 +297,7 @@ async def get_data(
 ):
     con = get_db_connection()
     try:
-        if dataset == COMBINED_DATASET_NAME:
+        if dataset.startswith(COMBINED_DATASET_NAME):
             if not glosses:
                 if format == "json":
                     return {"data": [], "total": 0}
@@ -480,7 +480,7 @@ async def get_full_data(
 ):
     con = get_db_connection()
     try:
-        if dataset == COMBINED_DATASET_NAME:
+        if dataset.startswith(COMBINED_DATASET_NAME):
             if not glosses:
                 if format == "json":
                     return {"data": []}
