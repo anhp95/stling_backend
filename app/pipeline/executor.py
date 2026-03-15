@@ -168,10 +168,10 @@ def _update_state(
         s.data_updated_this_turn = True
 
     if name == "read_csv" and "csv_data" in result:
-        if result["csv_data"] != getattr(s, "latest_data", None):
-            s.latest_data = result["csv_data"]
-            s.latest_data_source = "upload"
-            s.latest_data_rows = result.get("row_count", result["csv_data"].count("\n"))
-            s.data_updated_this_turn = True
+        # if result["csv_data"] != getattr(s, "latest_data", None):
+        s.latest_data = result["csv_data"]
+        s.latest_data_source = "upload"
+        s.latest_data_rows = result.get("row_count", result["csv_data"].count("\n"))
+        s.data_updated_this_turn = True
 
     s.last_output = result
