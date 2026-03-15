@@ -16,8 +16,11 @@ def to_binary_matrix(
     try:
         df = pd.read_csv(io.StringIO(csv_data.strip()))
 
-        required = ["Glottocode", "Concept", "Form"]
+        required = ["Concept", "Form"]
         missing = [c for c in required if c not in df.columns]
+        if "Glottocode" not in df.columns and "LangID" not in df.columns:
+            missing.append("Glottocode or LangID")
+        
         if missing:
             return {
                 "error": f"Missing required columns for matrix: {missing}",
@@ -30,6 +33,7 @@ def to_binary_matrix(
 
         meta = [
             "Glottocode",
+            "LangID",
             "Language Family",
             "Language Name",
             "Latitude",

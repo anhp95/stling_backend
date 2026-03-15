@@ -22,6 +22,7 @@ def cluster(
         df = pd.read_csv(io.StringIO(csv_data))
         meta = [
             "Glottocode",
+            "LangID",
             "Language Family",
             "Language Name",
             "Latitude",

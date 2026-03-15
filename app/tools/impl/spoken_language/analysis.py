@@ -8,16 +8,25 @@ from typing import Dict, Any
 def read_csv(csv_data: str, **kwargs) -> Dict[str, Any]:
     """Parse CSV and return structure."""
     if not csv_data or not csv_data.strip():
-        return {"columns": [], "row_count": 0, "preview": [], "error": "Empty CSV data"}
+        return {
+            "ok": False,
+            "columns": [],
+            "row_count": 0,
+            "preview": [],
+            "error": "Empty CSV data",
+        }
     try:
         df = pd.read_csv(io.StringIO(csv_data.strip()))
         return {
+            "ok": True,
+            "csv_data": csv_data,
             "columns": list(df.columns),
             "row_count": len(df),
             "preview": df.head(5).to_dict(orient="records"),
         }
     except Exception as e:
         return {
+            "ok": False,
             "columns": [],
             "row_count": 0,
             "preview": [],
@@ -52,11 +61,15 @@ def normalize_spoken_language_csv(csv_data: str, **kwargs) -> Dict[str, Any]:
                 r == "Glottocode" for r in rename_map.values()
             ):
                 rename_map[col] = "Glottocode"
-            elif "lat" in low and not any(r == "Latitude" for r in rename_map.values()):
-                rename_map[col] = "Latitude"
-            elif ("lon" in low or "lng" in low or "long" in low) and not any(
-                r == "Longitude" for r in rename_map.values()
+            elif ("langid" in low) and not any(r == "LangID" for r in rename_map.values()):
+                rename_map[col] = "LangID"
+            elif ("lat" in low or low == "y") and not any(
+                r == "Latitude" for r in rename_map.values()
             ):
+                rename_map[col] = "Latitude"
+            elif (
+                "lon" in low or "lng" in low or "long" in low or low == "x"
+            ) and not any(r == "Longitude" for r in rename_map.values()):
                 rename_map[col] = "Longitude"
 
         df.rename(columns=rename_map, inplace=True)
@@ -66,13 +79,15 @@ def normalize_spoken_language_csv(csv_data: str, **kwargs) -> Dict[str, Any]:
 
         # Check required columns
         required = [
-            "Glottocode",
             "Concept",
             "Form",
             "Latitude",
             "Longitude",
         ]
         missing = [c for c in required if c not in df.columns]
+
+        if "Glottocode" not in df.columns and "LangID" not in df.columns:
+            missing.append("Glottocode or LangID")
 
         if missing:
             return {
