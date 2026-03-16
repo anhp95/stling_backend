@@ -26,5 +26,4 @@ COPY . .
 # Expose the API port
 EXPOSE 8000
 
-# Run the backend using the uv environment
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "exec uv run uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]

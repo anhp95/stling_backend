@@ -6,10 +6,11 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "${PORT:-8000}:${PORT:-8000}"
     environment:
       # Override REDIS_URL to point to the local redis container in compose
       - REDIS_URL=redis://redis:6379/0
+      - PORT=${PORT:-8000}
     depends_on:
       - redis
 
