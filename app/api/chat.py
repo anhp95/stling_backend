@@ -13,18 +13,33 @@ import time
 
 from app.runtime.state import ConversationState
 from app.runtime.engine import run_turn
-from app.infra.settings import OLLAMA_BASE_URL
+from app.infra.settings import OLLAMA_BASE_URL, REDIS_URL
+import json
+import redis.asyncio as redis
 
 router = APIRouter()
 
 # ---- session store ----
-_sessions: Dict[str, ConversationState] = {}
+redis_client = redis.from_url(REDIS_URL, decode_responses=True)
 
 
-def get_state(sid: str) -> ConversationState:
-    if sid not in _sessions:
-        _sessions[sid] = ConversationState()
-    return _sessions[sid]
+async def get_state(sid: str) -> ConversationState:
+    data = await redis_client.get(f"session:{sid}")
+    if data:
+        try:
+            return ConversationState.from_dict(json.loads(data))
+        except Exception as e:
+            print(f"Error loading state for {sid}: {e}")
+            pass
+    return ConversationState()
+
+
+async def save_state(sid: str, state: ConversationState):
+    try:
+        data = json.dumps(state.to_dict())
+        await redis_client.set(f"session:{sid}", data, ex=86400 * 0.25)  # 6 hours
+    except Exception as e:
+        print(f"Error saving state for {sid}: {e}")
 
 
 # ---- models ----
@@ -169,7 +184,7 @@ async def chat_with_llm(request: ChatRequest):
     Delegates entirely to runtime.engine.run_turn().
     """
     t0 = time.time()
-    state = get_state(request.session_id)
+    state = await get_state(request.session_id)
 
     # Handle file upload
     if request.uploaded_file:
@@ -196,6 +211,8 @@ async def chat_with_llm(request: ChatRequest):
         frontend_context=request.context,
     )
     print("state", state.to_summary())
+
+    await save_state(request.session_id, state)
 
     return ChatResponse(
         role="assistant",

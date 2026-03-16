@@ -19,4 +19,5 @@ dependencies = [
     "shapely>=2.1.2",
     "uvicorn>=0.41.0",
     "cldfzenodo>=1.3.0",
+    "redis>=7.3.0",
 ]

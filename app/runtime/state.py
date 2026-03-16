@@ -47,3 +47,32 @@ class ConversationState:
     def append_turn(self, user: str, assistant: str):
         self.history.append({"role": "user", "content": user})
         self.history.append({"role": "assistant", "content": assistant})
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "wordlist": self.wordlist,
+            "latest_data": self.latest_data,
+            "last_output": self.last_output,
+            "latest_data_source": self.latest_data_source,
+            "latest_data_rows": self.latest_data_rows,
+            "matrix_languages": self.matrix_languages,
+            "matrix_concepts": self.matrix_concepts,
+            "active_layers": self.active_layers,
+            "history": self.history,
+            "data_updated_this_turn": self.data_updated_this_turn,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ConversationState":
+        inst = cls()
+        inst.wordlist = data.get("wordlist")
+        inst.latest_data = data.get("latest_data")
+        inst.last_output = data.get("last_output")
+        inst.latest_data_source = data.get("latest_data_source")
+        inst.latest_data_rows = data.get("latest_data_rows", 0)
+        inst.matrix_languages = data.get("matrix_languages", 0)
+        inst.matrix_concepts = data.get("matrix_concepts", 0)
+        inst.active_layers = data.get("active_layers", {})
+        inst.history = data.get("history", [])
+        inst.data_updated_this_turn = data.get("data_updated_this_turn", False)
+        return inst

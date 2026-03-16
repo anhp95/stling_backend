@@ -61,7 +61,9 @@ def normalize_spoken_language_csv(csv_data: str, **kwargs) -> Dict[str, Any]:
                 r == "Glottocode" for r in rename_map.values()
             ):
                 rename_map[col] = "Glottocode"
-            elif ("langid" in low) and not any(r == "LangID" for r in rename_map.values()):
+            elif ("langid" in low) and not any(
+                r == "LangID" for r in rename_map.values()
+            ):
                 rename_map[col] = "LangID"
             elif ("lat" in low or low == "y") and not any(
                 r == "Latitude" for r in rename_map.values()
