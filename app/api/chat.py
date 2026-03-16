@@ -39,10 +39,9 @@ async def get_state(sid: str) -> ConversationState:
 async def save_state(sid: str, state: ConversationState):
     try:
         data = json.dumps(state.to_dict())
-        await redis_client.set(f"session:{sid}", data, ex=86400 * 0.25)  # 6 hours
+        await redis_client.set(f"session:{sid}", data, ex=int(86400 * 0.25))  # 6 hours
     except Exception as e:
         print(f"Redis set error for {sid}: {e}")
-
 
 
 # ---- models ----
