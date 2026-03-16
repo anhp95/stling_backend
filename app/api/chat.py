@@ -24,13 +24,15 @@ redis_client = redis.from_url(REDIS_URL, decode_responses=True)
 
 
 async def get_state(sid: str) -> ConversationState:
-    data = await redis_client.get(f"session:{sid}")
-    if data:
-        try:
-            return ConversationState.from_dict(json.loads(data))
-        except Exception as e:
-            print(f"Error loading state for {sid}: {e}")
-            pass
+    try:
+        data = await redis_client.get(f"session:{sid}")
+        if data:
+            try:
+                return ConversationState.from_dict(json.loads(data))
+            except Exception as e:
+                print(f"Error parsing state for {sid}: {e}")
+    except Exception as e:
+        print(f"Redis get error for {sid}: {e}")
     return ConversationState()
 
 
@@ -39,7 +41,8 @@ async def save_state(sid: str, state: ConversationState):
         data = json.dumps(state.to_dict())
         await redis_client.set(f"session:{sid}", data, ex=86400 * 0.25)  # 6 hours
     except Exception as e:
-        print(f"Error saving state for {sid}: {e}")
+        print(f"Redis set error for {sid}: {e}")
+
 
 
 # ---- models ----
