@@ -20,7 +20,7 @@ def to_binary_matrix(
         missing = [c for c in required if c not in df.columns]
         if "Glottocode" not in df.columns and "LangID" not in df.columns:
             missing.append("Glottocode or LangID")
-        
+
         if missing:
             return {
                 "error": f"Missing required columns for matrix: {missing}",
@@ -31,34 +31,42 @@ def to_binary_matrix(
         df = df[df["Form"].astype(str).str.strip() != ""]
         df["has_form"] = 1
 
-        meta = [
+        META_CANDIDATES = [
             "Glottocode",
             "LangID",
+            "ID",
             "Language Family",
             "Language Name",
             "Latitude",
             "Longitude",
+            "Source",
+            "Date_Documented",
+            "Date_Documented_Attribute",
+            "Communalect",
+            "Communalect_Group",
+            "Language",
         ]
-        meta = [c for c in meta if c in df.columns]
+        # FIX 1: exclude columns that are entirely NaN — they poison groupby
+        meta = [c for c in META_CANDIDATES if c in df.columns and df[c].notna().any()]
 
-        grouped = df.groupby(meta + ["Concept"])["has_form"].first().reset_index()
+        # FIX 2: dropna=False so partially-null meta cols don't silently drop rows
+        grouped = (
+            df.groupby(meta + ["Concept"], dropna=False)["has_form"].max().reset_index()
+        )
+
         matrix = grouped.pivot_table(
             index=meta,
             columns="Concept",
             values="has_form",
+            aggfunc="max",  # FIX 3: explicit, not accidental mean
             fill_value=0,
         ).reset_index()
 
         concepts = [c for c in matrix.columns if c not in meta]
-        for col in concepts:
-            matrix[col] = matrix[col].astype(int)
+        matrix[concepts] = matrix[concepts].astype(int)
 
         out = matrix.to_csv(index=False)
-
-        if concepts:
-            avg = float(round(matrix[concepts].mean().mean() * 100, 1))
-        else:
-            avg = 0.0
+        avg = float(round(matrix[concepts].to_numpy().mean() * 100, 1))
 
         return {
             "csv_data": out,

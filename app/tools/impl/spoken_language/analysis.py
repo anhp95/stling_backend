@@ -50,18 +50,15 @@ def normalize_spoken_language_csv(csv_data: str, **kwargs) -> Dict[str, Any]:
             low = col.lower()
             if "form" in low and not any(r == "Form" for r in rename_map.values()):
                 rename_map[col] = "Form"
-            elif (
-                "concept" in low
-                or "gloss" in low
-                or "parameter" in low
-                or "param" in low
-            ) and not any(r == "Concept" for r in rename_map.values()):
+            elif ("concept" in low or "gloss" in low) and not any(
+                r == "Concept" for r in rename_map.values()
+            ):
                 rename_map[col] = "Concept"
             elif ("glottocode" in low or "glotto" in low) and not any(
                 r == "Glottocode" for r in rename_map.values()
             ):
                 rename_map[col] = "Glottocode"
-            elif ("langid" in low) and not any(
+            elif ("langid" in low or "village" in low) and not any(
                 r == "LangID" for r in rename_map.values()
             ):
                 rename_map[col] = "LangID"

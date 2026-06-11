@@ -77,17 +77,11 @@ async def get_catalog(glosses: Optional[List[str]] = Query(None)):
         if glosses:
             gloss_list = "', '".join([g.replace("'", "''") for g in glosses])
             try:
-                matching_datasets = (
-                    con.execute(
-                        f"""
+                matching_datasets = con.execute(f"""
                     SELECT DISTINCT dataset_name 
                     FROM read_parquet('{GLOSS_INDEX_PARQUET}')
                     WHERE Concepticon_Gloss IN ('{gloss_list}')
-                 """
-                    )
-                    .df()["dataset_name"]
-                    .tolist()
-                )
+                 """).df()["dataset_name"].tolist()
                 matching_set = set(matching_datasets)
             except Exception:
                 # Fallback or error handling if index doesn't exist yet
@@ -341,15 +335,13 @@ async def get_data(
                 p_p = os.path.join(ds_path, "parameters.parquet").replace("\\", "/")
 
                 if all(os.path.exists(p) for p in [l_p, f_p, p_p]):
-                    subqueries.append(
-                        f"""
+                    subqueries.append(f"""
                         SELECT l.*, f.Value as form_value, p.Concepticon_Gloss as parameter_name, '{d}' as dataset_name
                         FROM read_parquet('{p_p}') p
                         JOIN read_parquet('{f_p}') f ON p.ID = f.Parameter_ID
                         JOIN read_parquet('{l_p}') l ON f.Language_ID = l.ID
                         WHERE p.Concepticon_Gloss IN ('{gloss_list}') AND {get_coordinate_filter_sql('l')}
-                    """
-                    )
+                    """)
 
             if not subqueries:
                 if format == "json":
@@ -471,6 +463,46 @@ async def get_data(
         con.close()
 
 
+def build_query(con, p_p, f_p, l_p, d, gloss_list):
+    l_cols = set(
+        con.execute(f"SELECT * FROM read_parquet('{l_p}') LIMIT 0").df().columns
+    )
+    f_cols = set(
+        con.execute(f"SELECT * FROM read_parquet('{f_p}') LIMIT 0").df().columns
+    )
+
+    def l(col, alias=None):
+        label = f" as {alias}" if alias else ""
+        return f"l.{col}{label}" if col in l_cols else f"NULL as {alias or col}"
+
+    def f(col, alias=None):
+        label = f" as {alias}" if alias else ""
+        return f"f.{col}{label}" if col in f_cols else f"NULL as {alias or col}"
+
+    return f"""
+        SELECT
+            l.ID,
+            l.Glottocode,
+            {l('Name')} as Language,
+            {l('Village')},
+            {l('Communalect')},
+            {l('Communalect_Group')},
+            CAST(l.Latitude AS DOUBLE) as Latitude,
+            CAST(l.Longitude AS DOUBLE) as Longitude,
+            {f('Source')},
+            {f('Date_Documented')},
+            {f('Date_Documented_Attribute')},
+            f.Value as form_value,
+            p.Concepticon_Gloss as concept,
+            '{d}' as dataset_name
+        FROM read_parquet('{p_p}') p
+        JOIN read_parquet('{f_p}') f ON p.ID = f.Parameter_ID
+        JOIN read_parquet('{l_p}') l ON f.Language_ID = l.ID
+        WHERE p.Concepticon_Gloss IN ('{gloss_list}')
+        AND {get_coordinate_filter_sql('l')}
+    """
+
+
 @router.get("/full_data")
 async def get_full_data(
     data_type: str,
@@ -522,13 +554,14 @@ async def get_full_data(
                 p_p = os.path.join(ds_path, "parameters.parquet").replace("\\", "/")
                 if all(os.path.exists(p) for p in [l_p, f_p, p_p]):
                     subqueries.append(
-                        f"""
-                        SELECT l.ID, l.Glottocode, CAST(l.Latitude AS DOUBLE) as Latitude, CAST(l.Longitude AS DOUBLE) as Longitude, f.Value as form_value, p.Concepticon_Gloss as parameter_name, '{d}' as dataset_name
-                        FROM read_parquet('{p_p}') p
-                        JOIN read_parquet('{f_p}') f ON p.ID = f.Parameter_ID
-                        JOIN read_parquet('{l_p}') l ON f.Language_ID = l.ID
-                        WHERE p.Concepticon_Gloss IN ('{gloss_list}') AND {get_coordinate_filter_sql('l')}
-                    """
+                        build_query(con, p_p, f_p, l_p, d, gloss_list)
+                        # f"""
+                        # SELECT l.* EXCLUDE (Latitude, Longitude), CAST(l.Latitude AS DOUBLE) as Latitude, CAST(l.Longitude AS DOUBLE) as Longitude, f.* EXCLUDE (Value), f.Value as form_value, p.Concepticon_Gloss as concept, '{d}' as dataset_name
+                        # FROM read_parquet('{p_p}') p
+                        # JOIN read_parquet('{f_p}') f ON p.ID = f.Parameter_ID
+                        # JOIN read_parquet('{l_p}') l ON f.Language_ID = l.ID
+                        # WHERE p.Concepticon_Gloss IN ('{gloss_list}') AND {get_coordinate_filter_sql('l')}
+                        # """
                     )
 
             if not subqueries:

@@ -1,3 +1,4 @@
+# %%
 import pathlib
 import sys
 import shutil
@@ -210,5 +211,7 @@ def fetch_zenodo_cldf():
         print("[INDEX] No new datasets added — gloss index unchanged.")
 
 
-if __name__ == "__main__":
-    fetch_zenodo_cldf()
+# if __name__ == "__main__":
+#     fetch_zenodo_cldf()
+
+# %%

@@ -20,14 +20,7 @@ def cluster(
         metric = params.get("metric", "jaccard")
 
         df = pd.read_csv(io.StringIO(csv_data))
-        meta = [
-            "Glottocode",
-            "LangID",
-            "Language Family",
-            "Language Name",
-            "Latitude",
-            "Longitude",
-        ]
+        meta = [c for c in df.columns if not df[c].dropna().isin([0, 1]).all()]
         meta = [c for c in meta if c in df.columns]
         concepts = [c for c in df.columns if c not in meta]
         if not concepts:
