@@ -61,9 +61,16 @@ def sanitize_df(df):
 
 COMBINED_DATASET_NAME = "Combined"
 
+from pydantic import BaseModel
 
-@router.get("/catalog")
-async def get_catalog(glosses: Optional[List[str]] = Query(None)):
+
+class CatalogRequest(BaseModel):
+    glosses: Optional[List[str]] = None
+
+
+@router.post("/catalog")
+async def get_catalog(request: CatalogRequest):
+    glosses = request.glosses
     catalog = {
         "spoken_language": [],
         "sign_language": [],
@@ -483,7 +490,7 @@ def build_query(con, p_p, f_p, l_p, d, gloss_list):
         SELECT
             l.ID,
             l.Glottocode,
-            {l('Name')} as Language,
+            {l('Name')},
             {l('Village')},
             {l('Communalect')},
             {l('Communalect_Group')},
@@ -492,6 +499,16 @@ def build_query(con, p_p, f_p, l_p, d, gloss_list):
             {f('Source')},
             {f('Date_Documented')},
             {f('Date_Documented_Attribute')},
+            {f('Time_Documented')},
+            {f('Time_Documented_Attribute')},
+            {f('Time_Documented_Source')},
+            {f('Time_Documented2')},
+            {f('Time_Documented2_Attribute')},
+            {f('Time_Documented2_Source')},
+            {f('Time_Documented3')},
+            {f('Time_Documented3_Attribute')},
+            {f('Time_Documented3_Source')},
+            {f('Form')},
             f.Value as form_value,
             p.Concepticon_Gloss as concept,
             '{d}' as dataset_name
@@ -503,13 +520,19 @@ def build_query(con, p_p, f_p, l_p, d, gloss_list):
     """
 
 
-@router.get("/full_data")
-async def get_full_data(
-    data_type: str,
-    dataset: str,
-    glosses: Optional[List[str]] = Query(None),
-    format: Optional[str] = Query(None),
-):
+class FullDataRequest(BaseModel):
+    data_type: str
+    dataset: str
+    glosses: Optional[List[str]] = None
+    format: Optional[str] = None
+
+
+@router.post("/full_data")
+async def get_full_data(request: FullDataRequest):
+    data_type = request.data_type
+    dataset = request.dataset
+    glosses = request.glosses
+    format = request.format
     con = get_db_connection()
     try:
         if dataset.startswith(COMBINED_DATASET_NAME):
@@ -553,16 +576,7 @@ async def get_full_data(
                 f_p = os.path.join(ds_path, "forms.parquet").replace("\\", "/")
                 p_p = os.path.join(ds_path, "parameters.parquet").replace("\\", "/")
                 if all(os.path.exists(p) for p in [l_p, f_p, p_p]):
-                    subqueries.append(
-                        build_query(con, p_p, f_p, l_p, d, gloss_list)
-                        # f"""
-                        # SELECT l.* EXCLUDE (Latitude, Longitude), CAST(l.Latitude AS DOUBLE) as Latitude, CAST(l.Longitude AS DOUBLE) as Longitude, f.* EXCLUDE (Value), f.Value as form_value, p.Concepticon_Gloss as concept, '{d}' as dataset_name
-                        # FROM read_parquet('{p_p}') p
-                        # JOIN read_parquet('{f_p}') f ON p.ID = f.Parameter_ID
-                        # JOIN read_parquet('{l_p}') l ON f.Language_ID = l.ID
-                        # WHERE p.Concepticon_Gloss IN ('{gloss_list}') AND {get_coordinate_filter_sql('l')}
-                        # """
-                    )
+                    subqueries.append(build_query(con, p_p, f_p, l_p, d, gloss_list))
 
             if not subqueries:
                 if format == "json":
@@ -581,7 +595,6 @@ async def get_full_data(
                 lang_parquet = os.path.join(dataset_path, "languages.parquet").replace(
                     "\\", "/"
                 )
-                coord_where = get_coordinate_filter_sql("l")
                 if glosses:
                     forms_parquet = os.path.join(dataset_path, "forms.parquet").replace(
                         "\\", "/"
@@ -590,15 +603,25 @@ async def get_full_data(
                         dataset_path, "parameters.parquet"
                     ).replace("\\", "/")
                     gloss_list = "', '".join([g.replace("'", "''") for g in glosses])
-                    source_query = f"""
-                    (
-                        SELECT l.ID, l.Glottocode, CAST(l.Latitude AS DOUBLE) as Latitude, CAST(l.Longitude AS DOUBLE) as Longitude, f.Value as form_value, p.Concepticon_Gloss as parameter_name
-                        FROM read_parquet('{params_parquet}') p
-                        JOIN read_parquet('{forms_parquet}') f ON p.ID = f.Parameter_ID
-                        JOIN read_parquet('{lang_parquet}') l ON f.Language_ID = l.ID
-                        WHERE p.Concepticon_Gloss IN ('{gloss_list}') AND {coord_where}
-                    )
-                    """
+                    source_query = f"({build_query(
+                        con,
+                        params_parquet,
+                        forms_parquet,
+                        lang_parquet,
+                        dataset,
+                        gloss_list,
+                    )})"
+
+                    # source_query = f"""
+                    # (
+                    #     SELECT l.ID, l.Glottocode, CAST(l.Latitude AS DOUBLE) as Latitude, CAST(l.Longitude AS DOUBLE) as Longitude, f.Value as form_value, p.Concepticon_Gloss as parameter_name
+                    #     FROM read_parquet('{params_parquet}') p
+                    #     JOIN read_parquet('{forms_parquet}') f ON p.ID = f.Parameter_ID
+                    #     JOIN read_parquet('{lang_parquet}') l ON f.Language_ID = l.ID
+                    #     WHERE p.Concepticon_Gloss IN ('{gloss_list}') AND {get_coordinate_filter_sql('l')}
+                    # )
+                    # """
+
                 else:
                     source_query = f"(SELECT ID, Glottocode, CAST(Latitude AS DOUBLE) as Latitude, CAST(Longitude AS DOUBLE) as Longitude FROM read_parquet('{lang_parquet}') WHERE {get_coordinate_filter_sql()})"
             else:
