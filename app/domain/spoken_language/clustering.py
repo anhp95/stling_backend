@@ -37,6 +37,7 @@ def cluster(
         )
         labels = clusterer.fit_predict(X)
         df["cluster_id"] = labels
+        df = df.drop(columns=concepts)
         n_clusters = int(len(set(labels)) - (1 if -1 in labels else 0))
         n_noise = int(sum(labels == -1))
         return {
