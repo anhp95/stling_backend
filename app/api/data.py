@@ -490,7 +490,7 @@ def build_query(con, p_p, f_p, l_p, d, gloss_list):
         SELECT
             l.ID,
             l.Glottocode,
-            {l('Name')},
+            {l('Name')} as Language,
             {l('Village')},
             {l('Communalect')},
             {l('Communalect_Group')},

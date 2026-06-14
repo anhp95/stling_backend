@@ -1,5 +1,6 @@
 """Binary availability matrix — pure computation."""
 
+from curses import meta
 import io
 import pandas as pd
 from typing import Dict, Any
@@ -54,6 +55,11 @@ def to_binary_matrix(
             df.groupby(meta + ["Concept"], dropna=False)["has_form"].max().reset_index()
         )
 
+        # Patch NaNs before pivot_table re-groups
+        null_meta = [c for c in meta if grouped[c].isna().any()]
+        for c in null_meta:
+            grouped[c] = grouped[c].fillna("__NA__")
+
         matrix = grouped.pivot_table(
             index=meta,
             columns="Concept",
@@ -61,6 +67,9 @@ def to_binary_matrix(
             aggfunc="max",  # FIX 3: explicit, not accidental mean
             fill_value=0,
         ).reset_index()
+
+        for c in null_meta:
+            matrix[c] = matrix[c].replace("__NA__", pd.NA)
 
         concepts = [c for c in matrix.columns if c not in meta]
         matrix[concepts] = matrix[concepts].astype(int)
