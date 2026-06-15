@@ -214,4 +214,6 @@ def fetch_zenodo_cldf():
 # if __name__ == "__main__":
 #     fetch_zenodo_cldf()
 
+update_gloss_index()
+
 # %%
