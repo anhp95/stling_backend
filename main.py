@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.db import init_db
 from app.api import tiles, chat, data
 
@@ -33,6 +34,9 @@ app.add_middleware(
 app.include_router(tiles.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api/v1")
 app.include_router(data.router, prefix="/api/v1")
+
+os.makedirs("data/media", exist_ok=True)
+app.mount("/media", StaticFiles(directory="data/media"), name="media")
 
 
 @app.on_event("startup")

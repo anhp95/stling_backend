@@ -1,6 +1,5 @@
 """Binary availability matrix — pure computation."""
 
-from curses import meta
 import io
 import pandas as pd
 from typing import Dict, Any

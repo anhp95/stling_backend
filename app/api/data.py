@@ -76,6 +76,7 @@ async def get_catalog(request: CatalogRequest):
         "sign_language": [],
         "archaeology": [],
         "genetics": [],
+        "script": [],
     }
     con = get_db_connection()
     try:
